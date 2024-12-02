@@ -1,0 +1,110 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  userId    Int        @id @default(autoincrement())
+  email     String     @unique
+  name      String
+  password  String
+  role      Role       @default(USER)
+  createdAt DateTime   @default(now())
+  brand     Brand?
+  Coalition Coalition?
+}
+
+model Brand {
+  brandId      Int      @id @default(autoincrement())
+  brandRepId   Int      @unique
+  brandName    String
+  description  String?
+  otherDetails Json?
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [brandRepId], references: [userId])
+
+  coalitionId Int
+  Coalition   Coalition @relation(fields: [coalitionId], references: [coalitionId])
+
+  IssuedPoints IssuedPoints[]
+}
+
+model Coalition {
+  coalitionId Int      @id @default(autoincrement())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+
+  creatorId Int  @unique
+  creator   User @relation(fields: [creatorId], references: [userId])
+
+  brands      Brand[]
+  BrandTokens BrandTokens?
+}
+
+model BrandTokens {
+  brandTokenId Int      @id @default(autoincrement())
+  pointName    String
+  symbol       String
+  createdAt    DateTime @default(now())
+
+  coalitionId Int       @unique
+  Coalition   Coalition @relation(fields: [coalitionId], references: [coalitionId])
+
+  IssuedPoints IssuedPoints[]
+}
+
+model IssuedPoints {
+  issuedPointId Int      @id @default(autoincrement())
+  brandTokenId  Int
+  assetId       String   @unique
+  transactionId String   @unique
+  totalSupply   Int
+  totalIssued   Int
+  createdAt     DateTime @default(now())
+
+  brandTokens  BrandTokens    @relation(fields: [brandTokenId], references: [brandTokenId])
+  Transactions Transactions[]
+  Brand        Brand          @relation(fields: [brandId], references: [brandId])
+  brandId      Int
+}
+
+model Transactions {
+  transactionId    Int       @id @default(autoincrement())
+  issuedPointId    Int
+  amount           Int
+  transactionType  TransType
+  date             DateTime  @default(now())
+  recipientAddress String?
+  transactionHash  String
+  status           Status
+
+  IssuedPoints IssuedPoints @relation(fields: [issuedPointId], references: [issuedPointId])
+}
+
+enum TransType {
+  DEBIT
+  CREDIT
+}
+
+enum Status {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum Role {
+  ADMIN
+  USER
+}
