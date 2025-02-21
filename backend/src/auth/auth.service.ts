@@ -54,6 +54,7 @@ export class AuthService {
         if(user.role!==UserRole.ADMIN){
             throw new ForbiddenException('User is not an admin');
         }
+        
         const payload={sub:user.userId,email:user.email,role:user.role}
         return {userId:user.userId,token: this.jwtservice.sign(payload),statusCode: 200}
     }
@@ -73,8 +74,11 @@ export class AuthService {
         if(!validatePass){
             throw new ForbiddenException('Password is incorrect');
         }
-        const payload={sub:user.userId,email:user.email}
+        const payload={sub:user.userId,email:user.email,role: user.role }
         return {brandRepId:user.userId,token: this.jwtservice.sign(payload),statusCode: 200}
+        
+        
+
     }
 
     async register(RegisterDto:RegisterDto){

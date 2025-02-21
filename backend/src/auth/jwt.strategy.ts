@@ -14,20 +14,27 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
+  
   async validate(payload: any) {
-    //return {userId:payload.sub,email:payload.email,role:payload.role};
+    
+    console.log("JWT Token", payload);
+    
+     
     const user = await this.databaseService.user.findUnique({
       where: { userId: payload.sub },
     });
+    
 
     if (!user) {
       throw new UnauthorizedException('User not found');
     }
+    
 
     return {
       userId: user.userId,
       email: user.email,
       role: user.role,
     };
+    
   }
 }

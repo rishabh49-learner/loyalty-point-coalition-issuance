@@ -24,7 +24,7 @@
 
         try {
             const response = await axios.get(
-                'https://coalition-loyalty-point-issuance-page.onrender.com/coalition/token/details',
+                'http://localhost:3000/coalition/token/details',
                 {
                     headers: {
                         'Authorization': `Bearer ${coalitionToken}`

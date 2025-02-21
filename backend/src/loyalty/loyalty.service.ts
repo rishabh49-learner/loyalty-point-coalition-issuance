@@ -55,6 +55,7 @@ export class LoyaltyService {
     if (!brandWithCoalition) {
       throw new NotFoundException('Brand Not Found');
     }
+    
     const coalitionDetails = brandWithCoalition?.Coalition;
     const coalitionId = coalitionDetails.coalitionId;
     const brandToken = await this.databaseservice.brandTokens.findUnique({
@@ -62,6 +63,8 @@ export class LoyaltyService {
         coalitionId: coalitionId,
       },
     });
+    console.log(brandToken);
+    
     if (!brandToken) {
       throw new NotFoundException('Token Not Found');
     }
@@ -300,25 +303,25 @@ export class LoyaltyService {
         issuedPointId: DistributeDto.issuedPointId,
       },
     });
-
+  
     if (!issuedPoints) {
       throw new NotFoundException('Issued Points Not Found');
     }
     if (issuedPoints.totalSupply < DistributeDto.amount) {
       throw new NotFoundException('Insufficient Points');
     }
-
+  
     const assetId = issuedPoints.assetId;
     const transactionId = issuedPoints.transactionId;
-    console.log(assetId);
-    console.log(transactionId);
-
+    console.log('assetId', assetId);
+    console.log('transactionId', transactionId);
+  
     const headers = {
       'Content-Type': 'application/json',
       Authorization: DistributeDto.access_token,
       'User-Agent': 'axios/1.7.2',
     };
-
+  
     const walletList = await lastValueFrom(
       this.http
         .get('https://dev.neucron.io/v1/wallet/list', { headers })
@@ -329,7 +332,7 @@ export class LoyaltyService {
           }),
         ),
     );
-
+  
     const walletKey = Object.keys(walletList.data.Wallets).find(
       (key) => walletList.data.Wallets[key].wallet_name === 'main',
     );
@@ -341,7 +344,28 @@ export class LoyaltyService {
       DistributeDto.recipientAddress,
       DistributeDto.amount,
     );
-
+  
+    const utxosResponse = await lastValueFrom(
+      this.http
+        .get(`https://dev.neucron.io/v1/stas/utxos?assetID=${assetId}`, { headers })
+        .pipe(map((res) => res.data))
+        .pipe(
+          catchError((err) => {
+            console.error('Error fetching UTXOs:', err.response?.data || err.message || err);
+            throw new NotFoundException('UTXOs Not Found');
+          }),
+        ),
+    );
+  
+    console.log('Fetched UTXOs:', JSON.stringify(utxosResponse, null, 2));
+  
+    const utxo = utxosResponse?.data?.utxos[0]?.utxo_id;
+    if (!utxo) {
+      throw new NotFoundException('No UTXO Found for the Asset ID');
+    }
+  
+    console.log('utxoId', utxo);
+  
     const bodyData = {
       asset_id: assetId,
       splitDestinations: [
@@ -354,9 +378,10 @@ export class LoyaltyService {
           satoshis: issuedPoints.totalSupply - DistributeDto.amount,
         },
       ],
+      utxo_id: utxo,
     };
-    console.log(bodyData);
-
+    console.log('bodyData', bodyData);
+  
     const walletAddresses = await lastValueFrom(
       this.http
         .get('https://dev.neucron.io/v1/wallet/address', { headers })
@@ -367,13 +392,13 @@ export class LoyaltyService {
           }),
         ),
     );
-    console.log(walletAddresses);
+    console.log('walletAddresses', walletAddresses);
     const holdingAddress = walletAddresses.data.addresses[0];
     if (!holdingAddress) {
       throw new NotFoundException('Holding Address Not Found');
     }
-    console.log(holdingAddress);
-
+    console.log('holdingAddress', holdingAddress);
+  
     const res = await lastValueFrom(
       this.http
         .post(
@@ -384,26 +409,48 @@ export class LoyaltyService {
         .pipe(map((res) => res.data))
         .pipe(
           catchError((err) => {
+            console.error('Error occurred during split:', err.response?.data || err.message || err);
             throw new NotFoundException(err);
           }),
         ),
     );
-    console.log(res);
-    console.log(res.data.splited_assets_details[1].AssetID);
-
+    console.log('res', res);
+  
+    const updatedAssetId = res.data.splited_assets_details[1].AssetID;
+  
+    // New UTXO generation logic
+    const newUtxoResponse = await lastValueFrom(
+      this.http
+        .get(`https://dev.neucron.io/v1/stas/utxos?assetID=${updatedAssetId}`, { headers })
+        .pipe(map((res) => res.data))
+        .pipe(
+          catchError((err) => {
+            console.error('Error fetching new UTXOs:', err.response?.data || err.message || err);
+            throw new NotFoundException('New UTXOs Not Found');
+          }),
+        ),
+    );
+  
+    const newUtxo = newUtxoResponse?.data?.utxos[0]?.utxo_id;
+    if (!newUtxo) {
+      throw new NotFoundException('No New UTXO Found for the Updated Asset ID');
+    }
+  
+    console.log('New UTXO:', newUtxo);
+  
     const temp = await this.databaseservice.issuedPoints.update({
       where: {
         issuedPointId: DistributeDto.issuedPointId,
       },
       data: {
-        assetId: res.data.splited_assets_details[1].AssetID,
+        assetId: updatedAssetId,
         totalSupply: {
           decrement: DistributeDto.amount,
         },
       },
     });
     console.log(temp);
-
+  
     const result = await this.databaseservice.transactions.create({
       data: {
         IssuedPoints: {
@@ -415,11 +462,13 @@ export class LoyaltyService {
         transactionType: 'DEBIT',
         recipientAddress: DistributeDto.recipientAddress,
         status: 'COMPLETED',
-        transactionHash: 'string',
+        transactionHash: res.data.transactionHash || 'string',
       },
     });
-    return { res, statusCode: 200 };
+  
+    return { res, newUtxo, statusCode: 200 };
   }
+  
 
   async transactions(userId: number) {
     const tokenDetails = await this.brandToken(userId);
@@ -486,101 +535,117 @@ export class LoyaltyService {
   }
 
   async issueV2(userId: number, email: string, IssueV2Dto: IssueV2Dto) {
-    const brand = await this.brandService.findBrand(userId);
-    if (!brand) {
-      throw new NotFoundException('Brand Not Found');
-    }
-    const brandName = brand.brandName;
-    const tokenDetails = await this.brandToken(userId);
-    console.log(tokenDetails);
-    const tokenId = tokenDetails.brandToken.brandTokenId;
-    const tokenName = tokenDetails.brandToken.pointName;
-    const tokenSymbol = tokenDetails.brandToken.symbol;
-    console.log(IssueV2Dto);
-
-    const bodyData = {
-      data: {},
-      decimals: 0,
-      description: 'Coalition Loyalty Points',
-      image: 'string',
-      name: tokenName,
-      properties: {
-        issuer: {
-          email: email,
-          governingLaw: 'India',
-          issuerCountry: 'India',
-          jurisdiction: 'India',
-          legalForm: 'Limited',
-          organisation: brandName,
-        },
-        legal: {
-          licenceId: 'stastoken.com',
-          terms:
-            'STAS, Inc. retains all rights to the token script.  Use is subject to terms at https://stastoken.com/license.',
-        },
-        meta: {
-          legal: {
-            terms: 'Your token terms and description.',
-          },
-          media: [
-            {
-              URI: 'string',
-              altURI: 'string',
-              type: 'string',
-            },
-          ],
-          schemaId: 'STAS1.0',
-          website: 'string',
-        },
-      },
-      protocolId: 'STAS',
-      satsPerToken: 1,
-      splitable: true,
-      symbol: tokenSymbol,
-      totalSupply: IssueV2Dto.totalSupply,
-    };
-
-    const headers = {
-      'Content-Type': 'application/json',
-      Authorization: IssueV2Dto.neucron_token,
-      'User-Agent': 'axios/1.7.2',
-    };
-
-    const res = await this.http
-      .post('https://dev.neucron.io/v1/stas/mint', bodyData, { headers })
-      .pipe(map((res) => res.data))
-      .pipe(
-        catchError((err) => {
-          throw new NotFoundException(err);
-        }),
-      );
-    const details = await lastValueFrom(res);
-    const brandId = brand.brandId;
-
-    const issuedPoint = await this.databaseservice.issuedPoints.create({
-      data: {
-        brandTokens: {
-          connect: {
-            brandTokenId: tokenId,
-          },
-        },
-        Brand: {
-          connect: {
-            brandId: brandId,
-          },
-        },
-        totalSupply: IssueV2Dto.totalSupply,
-        totalIssued: IssueV2Dto.totalSupply,
-        transactionId: details.data.details.TxID,
-        assetId: details.data.details.AssetID,
-      },
-    });
-    
-    return {
-      pontName: tokenName,
-      symbol: tokenSymbol,
-      issuedPoint,
-      statusCode: 200,
-    };
+  const brand = await this.brandService.findBrand(userId);
+  if (!brand) {
+    throw new NotFoundException('Brand Not Found');
   }
+  const brandName = brand.brandName;
+  console.log('Token Details fetched:', IssueV2Dto.neucron_token);
+  const tokenDetails = await this.brandToken(userId);
+  console.log('Token Details fetched:', tokenDetails);
+
+  const tokenId = tokenDetails.brandToken.brandTokenId;
+  const tokenName = tokenDetails.brandToken.pointName;
+  const tokenSymbol = tokenDetails.brandToken.symbol;
+  console.log('IssueV2Dto:', IssueV2Dto);
+
+  const bodyData = {
+    
+    data: {},
+    decimals: 0,
+    description: 'Coalition Loyalty Points',
+    expires_at: "2025-12-31T00:00:00Z",
+    image: 'string',
+    name: tokenName,
+    properties: {
+      issuer: {
+        email: email,
+        governingLaw: 'India',
+        issuerCountry: 'India',
+        jurisdiction: 'India',
+        legalForm: 'Limited',
+        organisation: brandName,
+      },
+      legal: {
+        licenceId: 'stastoken.com',
+        terms:
+          'STAS, Inc. retains all rights to the token script.  Use is subject to terms at https://stastoken.com/license.',
+      },
+      meta: {
+        legal: {
+          terms: 'Your token terms and description.',
+        },
+        media: [
+          {
+            URI: 'string',
+            altURI: 'string',
+            type: 'string',
+          },
+        ],
+        schemaId: 'STAS1.0',
+        website: 'string',
+      },
+    },
+    protocolId: 'STAS',
+    satsPerToken: 1,
+    splitable: true,
+    symbol: tokenSymbol,
+    totalSupply: IssueV2Dto.totalSupply,
+  };
+
+  console.log('Body data being sent:', JSON.stringify(bodyData, null, 2));
+
+  const headers = {
+    'Content-Type': 'application/json',
+    Authorization: IssueV2Dto.neucron_token,
+    'User-Agent': 'axios/1.7.2',
+  };
+
+  // console.log('Neucron Token fetched:', IssueV2Dto.neucron_token);
+  console.log('Token being sent in Authorization header:', headers.Authorization);
+
+  const res = await this.http
+    .post('https://dev.neucron.io/v1/stas/mint?protocol=STAS', bodyData, { headers })
+    .pipe(map((res) => {
+      console.log('API Response:', res.data);
+      return res.data;
+    }))
+    .pipe(
+      catchError((err) => {
+        console.error('Error Response from Neucron API:', err.response?.data || err.message);
+        throw new NotFoundException(err);
+      }),
+    );
+
+  const details = await lastValueFrom(res);
+  console.log('API Response Details:', details);
+
+  const brandId = brand.brandId;
+
+  const issuedPoint = await this.databaseservice.issuedPoints.create({
+    data: {
+      brandTokens: {
+        connect: {
+          brandTokenId: tokenId,
+        },
+      },
+      Brand: {
+        connect: {
+          brandId: brandId,
+        },
+      },
+      totalSupply: IssueV2Dto.totalSupply,
+      totalIssued: IssueV2Dto.totalSupply,
+      transactionId: details.data.details.TxID,
+      assetId: details.data.details.AssetID,
+    },
+  });
+
+  return {
+    pontName: tokenName,
+    symbol: tokenSymbol,
+    issuedPoint,
+    statusCode: 200,
+  };
+}
 }

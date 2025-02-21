@@ -42,7 +42,7 @@
 		event.preventDefault();
 
 		try {
-			const response = await axios.post('https://coalition-loyalty-point-issuance-page.onrender.com/loyalty/distribute', {
+			const response = await axios.post('http://localhost:3000/loyalty/distribute', {
 				access_token: accessToken,
 				recipientAddress: recipientAddress,
 				amount: amount,
@@ -157,7 +157,7 @@
 							<tr>
 								<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{detail.AssetID}</td>
 								<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{detail.TxID}</td>
-								<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{recipientAddress}</td>
+								<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{detail.recipientAddress}</td>
 								<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{detail.AssetName}</td>
 								<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{detail.Amount}</td>
 								<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{detail['log-Status']}</td>
