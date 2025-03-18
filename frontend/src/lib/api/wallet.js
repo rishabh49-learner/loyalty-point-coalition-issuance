@@ -1,7 +1,7 @@
 import axios from 'axios';
-
+const baseURL = import.meta.env.VITE_API_URL;
 // Replace with your actual backend URL
-const baseURL = 'http://localhost:3000';
+
 
 // Login function
 export async function login(email, password) {

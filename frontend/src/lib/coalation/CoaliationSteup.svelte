@@ -5,6 +5,8 @@
     import { onMount } from 'svelte';
     import { createEventDispatcher } from 'svelte';
 
+    const API_URL = import.meta.env.VITE_API_URL;
+    
     let coalitionjwt = null;
     let coalitionName = '';
     let description = '';
@@ -37,7 +39,7 @@
 
         try {
             const response = await axios.post(
-                'http://localhost:3000/coalition/setup',
+                `${API_URL}/coalition/setup`,
                 {
                     coalitionName,
                     description
@@ -78,7 +80,7 @@
         }
     }
 </script>
-
+   
 <section class="bg-white dark:bg-gray-900">
     <div class="py-6 px-4 mx-auto max-w-screen-md">
         <h2 class="mb-4 text-4xl tracking-tight font-extrabold text-center text-gray-900 dark:text-white">

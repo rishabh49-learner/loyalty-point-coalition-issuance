@@ -3,7 +3,10 @@
 	import axios from 'axios';
 	import { authToken } from '$lib/api/api';
 	import { get } from 'svelte/store';
-    import { createEventDispatcher } from 'svelte'; 
+    import { createEventDispatcher } from 'svelte';
+
+	const API_URL = import.meta.env.VITE_API_URL;
+
     let dispatch = createEventDispatcher();
 	function handleDistribute() {
 		dispatch('distributePoints');
@@ -17,7 +20,7 @@
 
 	async function fetchIssuedPoints() {
 		try {
-			const response = await axios.get('http://localhost:3000/loyalty/manage', {
+			const response = await axios.get(`${API_URL}/loyalty/manage`, {
 				headers: {
 					Authorization: `Bearer ${get(authToken)}`
 				}

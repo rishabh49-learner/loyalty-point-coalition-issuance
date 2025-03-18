@@ -5,6 +5,7 @@
     import { goto } from '$app/navigation'; // Use goto for navigation in SvelteKit
     import { coalitionToken as coalitionAuthToken } from '$lib/api/api'; // Assume you have this store
 
+    const API_URL = import.meta.env.VITE_API_URL;
     let tokenDetails = writable(null);
     let error = writable(null);
     let loading = writable(true);
@@ -24,7 +25,7 @@
 
         try {
             const response = await axios.get(
-                'http://localhost:3000/coalition/token/details',
+                `${API_URL}/coalition/token/details`,
                 {
                     headers: {
                         'Authorization': `Bearer ${coalitionToken}`

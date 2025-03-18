@@ -6,6 +6,8 @@
 	import PopupModal from './PopupModal.svelte';
 	import { createEventDispatcher } from 'svelte';
 
+	const API_URL = import.meta.env.VITE_API_URL;
+
 	let jwt = null;
 	let coalitionId='';
 	let brandName = '';
@@ -43,7 +45,7 @@
 
 		try {
 			const response = await axios.post(
-				'http://localhost:3000/brand/setup',
+				`${API_URL}/brand/setup`,
 				{
 					coalitionId: Number(coalitionId),
 					brandName,

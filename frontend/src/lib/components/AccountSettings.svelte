@@ -4,6 +4,8 @@
 	import { authToken, isAuthenticated } from '$lib/api/api';
 	import { get } from 'svelte/store';
 
+	const API_URL = import.meta.env.VITE_API_URL;
+
 	let brandData = null;
 	let userData = null;
 	let coalitionData = null;
@@ -14,7 +16,7 @@
 
 	async function fetchBrandDetails() {
 		try {
-			const response = await axios.get('http://localhost:3000/brand/details', {
+			const response = await axios.get(`${API_URL}/brand/details`, {
 				headers: {
 					Authorization: `Bearer ${get(authToken)}`
 				}

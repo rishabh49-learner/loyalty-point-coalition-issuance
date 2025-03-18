@@ -5,6 +5,8 @@
 	import { onMount } from 'svelte';
 	import { createEventDispatcher } from 'svelte';
 
+	const API_URL = import.meta.env.VITE_API_URL;
+
 	let jwt = null;
 	let neucronToken = '';
 	let totalSupply = ''; // Initialize as an empty string for dynamic input
@@ -47,7 +49,7 @@
 			});
 
 			const response = await axios.post(
-				'http://localhost:3000/loyalty/issue/v2',
+				`${API_URL}/loyalty/issue/v2`,
 				{
 					neucron_token: neucronToken,
 					totalSupply: Number(totalSupply) // Convert totalSupply to a number

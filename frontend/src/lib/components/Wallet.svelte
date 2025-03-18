@@ -5,6 +5,8 @@
 	import { onMount } from 'svelte';
 	import { createEventDispatcher } from 'svelte';
 
+	const API_URL = import.meta.env.VITE_API_URL;
+
 	let jwt = null;
 	let neucronEmail = '';
 	let neucronPassword = '';
@@ -40,7 +42,7 @@
 
 		try {
 			const response = await axios.post(
-				'http://localhost:3000/auth/neucron-login',
+				`${API_URL}/auth/neucron-login`,
 				{
 					email: neucronEmail,
 					password: neucronPassword

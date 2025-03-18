@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { writable } from 'svelte/store';
 
+	const API_URL = import.meta.env.VITE_API_URL;
 	// Local state
 	let name = '';
 	let email = '';
@@ -21,7 +22,7 @@
 		error = '';
 
 		try {
-			const response = await fetch('http://localhost:3000/auth/register', {
+			const response = await fetch(`${API_URL}/auth/register`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json'

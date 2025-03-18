@@ -5,6 +5,8 @@
 	import { goto } from '$app/navigation';
 	import { coalitionToken as coalitionAuthToken } from '$lib/api/api';
 
+	const API_URL = import.meta.env.VITE_API_URL;
+
 	let tokenDetails = writable(null);
 	let error = writable(null);
 	let loading = writable(true);
@@ -21,7 +23,7 @@
 		}
 
 		try {
-			const response = await axios.get('http://localhost:3000/coalition/tokens', {
+			const response = await axios.get(`${API_URL}/coalition/tokens`, {
 				headers: {
 					'Authorization': `Bearer ${coalitionToken}`
 				}

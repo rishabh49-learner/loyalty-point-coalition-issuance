@@ -4,6 +4,8 @@
 	import { authToken as jwtToken, isAuthenticated } from '$lib/api/api';
 	import { goto } from '$app/navigation';
 
+	const API_URL = import.meta.env.VITE_API_URL;
+	
 	let jwt = null;
 	let authenticated = false;
 	let transactions = [];
@@ -31,7 +33,7 @@
 
 	async function fetchTransactions() {
 		try {
-			const response = await axios.get('http://localhost:3000/loyalty/transactions', {
+			const response = await axios.get(`${API_URL}/loyalty/transactions`, {
 				headers: {
 					Authorization: `Bearer ${jwt}`
 				}

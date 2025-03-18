@@ -6,6 +6,8 @@
 	import PopupModal from '../components/PopupModal.svelte';
 	import { createEventDispatcher } from 'svelte';
 
+	const API_URL = import.meta.env.VITE_API_URL;
+
 	let jwt = null;
 	let pointName = '';
 	let symbol = '';
@@ -42,7 +44,7 @@
 
 		try {
 			const response = await axios.post(
-				'http://localhost:3000/loyalty/define',
+				`${API_URL}/loyalty/define`,
 				{
 					pointName,
 					symbol

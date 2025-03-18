@@ -4,7 +4,7 @@
 	import { authToken as jwtToken, isAuthenticated } from '$lib/api/api';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-
+	const API_URL = import.meta.env.VITE_API_URL;
 	const dispatch = createEventDispatcher();
 
 	let jwt = null;
@@ -42,7 +42,7 @@
 		event.preventDefault();
 
 		try {
-			const response = await axios.post('http://localhost:3000/loyalty/distribute', {
+			const response = await axios.post(`${API_URL}/loyalty/distribute`, {
 				access_token: accessToken,
 				recipientAddress: recipientAddress,
 				amount: amount,

@@ -9,13 +9,15 @@
 	let error = '';
 	let loading = false;
 
+	const API_URL = import.meta.env.VITE_API_URL;
+
 	async function handleLogin(event) {
 		event.preventDefault();
 		loading = true;
 		error = '';
 
 		try {
-			const response = await axios.post('http://localhost:3000/auth/login', {
+			const response = await axios.post(`${API_URL}/auth/login`, {
 				email,
 				password
 			});

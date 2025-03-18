@@ -4,6 +4,8 @@
     import { onMount } from 'svelte';
     import { coalitionToken } from '$lib/api/api';
 
+    const API_URL = import.meta.env.VITE_API_URL;
+
     let coalitionDetails = writable(null);
     let error = writable(null);
     let loading = writable(true);
@@ -17,7 +19,7 @@
 
         try {
             const response = await axios.get(
-                'http://localhost:3000/coalition/details',
+                `${API_URL}/coalition/details`,
                 {
                     headers: {
                         'Authorization': `Bearer ${token}`
