@@ -34,7 +34,7 @@
 
 	async function fetchUserProfile() {
 		try {
-			const response = await axios.get('http://localhost:3000/user/profile', {
+			const response = await axios.get(`${API_URL}/user/profile`, {
 				headers: {
 					Authorization: `Bearer ${get(authToken)}`
 				}
@@ -51,7 +51,7 @@
 
 	async function fetchCoalitionDetails() {
 		try {
-			const response = await axios.get('https://coalition-loyalty-point-issuance-page.onrender.com/brand/coalition/details', {
+			const response = await axios.get(`${API_URL}/brand/coalition/details`, {
 				headers: {
 					Authorization: `Bearer ${get(authToken)}`
 				}
@@ -68,7 +68,7 @@
 
 	async function fetchBrandTokenDetails() {
 		try {
-			const response = await axios.get('https://coalition-loyalty-point-issuance-page.onrender.com/loyalty/brand-token', {
+			const response = await axios.get(`${API_URL}/loyalty/brand-token`, {
 				headers: {
 					Authorization: `Bearer ${get(authToken)}`
 				}
